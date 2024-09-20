@@ -61,7 +61,7 @@ class LastfmData(data.Dataset):
     def get_music_id2name(self):
         music_id2name = dict()
         item_path=op.join(self.data_dir, 'id2name.txt')
-        with open(item_path, 'r') as f:
+        with open(item_path, 'r', encoding='utf-8') as f:
             for l in f.readlines():
                 ll = l.strip('\n').split('::')
                 music_id2name[int(ll[0])] = ll[1].strip()

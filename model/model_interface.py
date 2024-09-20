@@ -6,8 +6,8 @@ from torch.nn import functional as F
 import torch.optim.lr_scheduler as lrs
 
 import pytorch_lightning as pl
-
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from modelscope import AutoModelForCausalLM, AutoTokenizer
+# from transformers import LlamaForCausalLM, LlamaTokenizer
 import random
 from pandas.core.frame import DataFrame
 import os.path as op
@@ -29,7 +29,8 @@ class MInterface(pl.LightningModule):
         targets = batch["tokens"].input_ids.masked_fill(
             batch["tokens"].input_ids == self.llama_tokenizer.pad_token_id, -100
         ) # [batch_size, max_len]
-        targets = targets.masked_fill((batch["tokens"].token_type_ids == 0)[:,1:], -100)
+        # targets = targets.masked_fill((batch["tokens"].token_type_ids == 0)[:,1:], -100)
+        targets = targets.masked_fill((batch["tokens"].token_type_ids == 0)[:,:], -100)
         input_embeds = self.wrap_emb(batch)
         outputs = self.llama_model(
             inputs_embeds=input_embeds,
@@ -198,12 +199,14 @@ class MInterface(pl.LightningModule):
         
     def load_llm(self, llm_path):
         print('Loading LLAMA')
-        self.llama_tokenizer = LlamaTokenizer.from_pretrained(llm_path, use_fast=False)
+        self.llama_tokenizer = AutoTokenizer.from_pretrained(llm_path)
+        # self.llama_tokenizer = LlamaTokenizer.from_pretrained(llm_path, use_fast=False)
         self.llama_tokenizer.pad_token = self.llama_tokenizer.eos_token
         self.llama_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.llama_tokenizer.padding_side = "right"
         self.llama_tokenizer.add_special_tokens({'additional_special_tokens': ['[PH]','[HistoryEmb]','[CansEmb]','[ItemEmb]']})
-        self.llama_model = LlamaForCausalLM.from_pretrained(llm_path, torch_dtype=torch.bfloat16)
+        # self.llama_model = LlamaForCausalLM.from_pretrained(llm_path, torch_dtype=torch.bfloat16)
+        self.llama_model = AutoModelForCausalLM.from_pretrained(llm_path, torch_dtype=torch.bfloat16)
         self.llama_model.resize_token_embeddings(len(self.llama_tokenizer))
         if self.hparams.llm_tuning == 'lora':
             if self.hparams.peft_dir:
